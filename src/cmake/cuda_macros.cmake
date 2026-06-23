@@ -148,6 +148,13 @@ function ( MAKE_CUDA_BITCODE src suffix generated_bc extra_clang_args )
         set (CUDA_TEXREF_FIX "-D__CLANG_CUDA_TEXTURE_INTRINSICS_H__")
     endif()
 
+    # CUDA 13+ removed texture_fetch_functions.h from the toolkit; Clang's wrapper
+    # still includes it in current releases. Use a minimal stub so the include resolves.
+    set (CUDA_COMPAT_INCLUDE "")
+    if ("${CUDA_VERSION}" VERSION_GREATER_EQUAL "13.0")
+        set (CUDA_COMPAT_INCLUDE "-I${PROJECT_SOURCE_DIR}/src/cmake/cuda_compat")
+    endif ()
+
     list (TRANSFORM IMATH_INCLUDES PREPEND -I
           OUTPUT_VARIABLE ALL_IMATH_INCLUDES)
     list (TRANSFORM OPENEXR_INCLUDES PREPEND -I
@@ -157,6 +164,7 @@ function ( MAKE_CUDA_BITCODE src suffix generated_bc extra_clang_args )
 
     add_custom_command (OUTPUT ${bc_cuda}
         COMMAND ${LLVM_BC_GENERATOR}
+            ${CUDA_COMPAT_INCLUDE}
             "-I${OPTIX_INCLUDES}"
             "-I${CUDA_INCLUDES}"
             "-I${CMAKE_CURRENT_SOURCE_DIR}"
